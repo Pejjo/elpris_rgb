@@ -21,6 +21,8 @@ typedef struct {
 
 rgb_t leds[8];
 
+uint16_t pwm1, pwm2;
+
 void setup_interrupt_and_sleepmode(void);
 void blink_selected(void);
 void change_color(void);
@@ -65,25 +67,27 @@ int main(void)
 
 	while (1) {
 //		cli();
-		if (status_flags == 0) // If no interrupts have been triggered, goto sleep
-		{
-			sei();
+//		if (status_flags == 0) // If no interrupts have been triggered, goto sleep
+//		{
+//			sei();
 //			sleep_cpu(); // The device will remain in sleep until any of the buttons are pressed
-		}                // to change color or intensity or when LUT0 output goes high.
-		else {
-			Check_flags(); // Check witch flags have been set
-		}
-		if (TCB0.INTFLAGS & TCB_CAPT_bm)
+//		}                // to change color or intensity or when LUT0 output goes high.
+//		else {
+//			Check_flags(); // Check witch flags have been set
+//		}
+		if (TCB1.INTFLAGS & TCB_CAPT_bm)
 		{
 			uint8_t cnt;
 			char tmp[30];
 			cnt=RingBuffer_GetCount(&inBuffer);
-			TCB0.INTFLAGS=TCB_CAPT_bm;
-			if (cnt==26)
+			TCB1.INTFLAGS=TCB_CAPT_bm;
+			if (cnt==40)
 			{
 				update=0;
 				uint8_t tmp;
 				uint8_t * ledptr = leds;
+				uint8_t * pwm1ptr = (uint8_t *) &pwm1;
+				uint8_t * pwm2ptr = (uint8_t *) &pwm2;
 				Led_0_set_level(1);
 				USART3_sendString("S26");
 				tmp=RingBuffer_Remove(&inBuffer);
@@ -95,6 +99,16 @@ int main(void)
 					USART3_sendString("*");
 					*(ledptr++)=RingBuffer_Remove(&inBuffer);
 				}
+				for (uint8_t x=25; x<27; x++)
+				{
+					USART3_sendString("+");
+					*(pwm1ptr++)=RingBuffer_Remove(&inBuffer);
+				}
+				for (uint8_t x=27; x<29; x++)
+				{
+					USART3_sendString("-");
+					*(pwm2ptr++)=RingBuffer_Remove(&inBuffer);
+				}
 				tmp=RingBuffer_Remove(&inBuffer);
 				if (tmp==0x03)
 				{
@@ -103,7 +117,7 @@ int main(void)
 				}
 				if (update==2)
 				{
-					USART3_sendString("Dne");
+					USART3_sendString("Dne\n");
 					write_to_leds(Number_of_LEDS);
 				}
 				

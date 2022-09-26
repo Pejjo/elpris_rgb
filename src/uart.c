@@ -51,7 +51,7 @@ ISR(USART3_RXC_vect)
     x=USART3.RXDATAL;
     
     RingBuffer_Insert(&inBuffer, x);
-    TCB0.CNT=0; // Reset for every byte
+    TCB1.CNT=0; // Reset for every byte
 } 
 
 
@@ -87,13 +87,13 @@ void USART3_init(void)
     PORTB.DIR |= PIN2_bm;
     
     EVSYS.CHANNEL0=EVSYS_GENERATOR_PORT1_PIN1_gc; // Connect PB1 (RXD) to EV0
-    EVSYS.USERTCB0=EVSYS_CHANNEL_CHANNEL0_gc;   // Connect EV0 to TCB0
+    EVSYS.USERTCB1=EVSYS_CHANNEL_CHANNEL0_gc;   // Connect EV0 to TCB1
     EVSYS.USEREVOUTB=EVSYS_CHANNEL_CHANNEL0_gc;
-    TCB0.CTRLA=TCB_CLKSEL_CLKDIV1_gc | TCB_ENABLE_bm | TCB_ASYNC_bm;
-    TCB0.CTRLB=(1 << TCB_CCMPEN_bp) | TCB_CNTMODE_SINGLE_gc; 
-    TCB0.EVCTRL=TCB_FILTER_bm  | (1 << TCB_EDGE_bp) | TCB_CAPTEI_bm;
-    TCB0.CCMP=0x8000;
-//    TCB0.INTCTRL=TCB_CAPT_bm;
+    TCB1.CTRLA=TCB_CLKSEL_CLKDIV1_gc | TCB_ENABLE_bm | TCB_ASYNC_bm;
+    TCB1.CTRLB=(1 << TCB_CCMPEN_bp) | TCB_CNTMODE_SINGLE_gc; 
+    TCB1.EVCTRL=TCB_FILTER_bm  | (1 << TCB_EDGE_bp) | TCB_CAPTEI_bm;
+    TCB1.CCMP=0x8000;
+//    TCB1.INTCTRL=TCB_CAPT_bm;
     
 }
 
