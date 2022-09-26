@@ -64,7 +64,7 @@ int main(void)
 
 	// Get the stored color and intensity from eeprom
 //	get_stored_color_from_EE();
-
+sei();
 	while (1) {
 //		cli();
 //		if (status_flags == 0) // If no interrupts have been triggered, goto sleep
@@ -81,7 +81,7 @@ int main(void)
 			char tmp[30];
 			cnt=RingBuffer_GetCount(&inBuffer);
 			TCB1.INTFLAGS=TCB_CAPT_bm;
-			if (cnt==40)
+			if (cnt==30)
 			{
 				update=0;
 				uint8_t tmp;
