@@ -21,7 +21,6 @@ typedef struct {
 
 rgb_t leds[8];
 
-uint16_t pwm1, pwm2;
 
 void setup_interrupt_and_sleepmode(void);
 void blink_selected(void);
@@ -45,17 +44,30 @@ ISR(PORTF_PORT_vect)
 
 }
 
+// PA0: PWM1
+// PA1: PWM2
+// PA2: EVOUT
+// PA4: MOSI
+// PA5: MISO
+// PA6: SCK
+// PB0: TXD
+// PB1: RXD
+// PC	Out
+// PD	Out
+// PF4: TCB0, waveform for ws11
+
+// Invertera clk??
+
 // In main the
 int main(void)
 {
-	
 	uint8_t update;
 	/* Initializes MCU, drivers and middleware */
 	system_init();
 
 	// Configure interrupts and sleepmode
 	setup_interrupt_and_sleepmode();
-
+		
 	USART3_init();
 	USART3_sendString("Type ON/OFF to control the LED.\r\n");
 	
@@ -64,7 +76,8 @@ int main(void)
 
 	// Get the stored color and intensity from eeprom
 //	get_stored_color_from_EE();
-sei();
+	sei();
+
 	while (1) {
 //		cli();
 //		if (status_flags == 0) // If no interrupts have been triggered, goto sleep
@@ -86,8 +99,6 @@ sei();
 				update=0;
 				uint8_t tmp;
 				uint8_t * ledptr = leds;
-				uint8_t * pwm1ptr = (uint8_t *) &pwm1;
-				uint8_t * pwm2ptr = (uint8_t *) &pwm2;
 				Led_0_set_level(1);
 				USART3_sendString("S26");
 				tmp=RingBuffer_Remove(&inBuffer);
@@ -99,15 +110,25 @@ sei();
 					USART3_sendString("*");
 					*(ledptr++)=RingBuffer_Remove(&inBuffer);
 				}
-				for (uint8_t x=25; x<27; x++)
-				{
-					USART3_sendString("+");
-					*(pwm1ptr++)=RingBuffer_Remove(&inBuffer);
-				}
+//				for (uint8_t x=25; x<27; x++)
+//				{
+				// First PWM value
+				USART3_sendString("+");
+				TCA0.SINGLE.CMP0 = RingBuffer_Remove(&inBuffer);
+
+				// Second PWM value
+				USART3_sendString("+");
+				TCA0.SINGLE.CMP1 = RingBuffer_Remove(&inBuffer);
+//				}
+				USART3_sendString("-");
+				VPORTC.OUT = RingBuffer_Remove(&inBuffer);
+
+				USART3_sendString("-");
+				VPORTD.OUT = RingBuffer_Remove(&inBuffer);
+				
 				for (uint8_t x=27; x<29; x++)
 				{
-					USART3_sendString("-");
-					*(pwm2ptr++)=RingBuffer_Remove(&inBuffer);
+					
 				}
 				tmp=RingBuffer_Remove(&inBuffer);
 				if (tmp==0x03)
@@ -134,55 +155,6 @@ sei();
 	}
 }
 
-void Check_flags(void)
-{
-	switch (status_flags) {
-	case 0x01:                            // Button 1 have been pressed to change the LED color
-		while (Button_0_get_level() == 0) // Remain in the loop as long as the button is held low
-		{
-//			change_color();                  // Change to next color
-//			update_LEDS(ON, Number_of_LEDS); // Write color to LEDs
-//			_delay_ms(300);                  // Delay to allow user to observe the color
-		}
-//		store_color_to_EE();   // When button is released, the color is chosen and stored in eeprom
-//		blink_selected();      // Selected color is displayed on the LEDs
-		status_flags &= ~0x01; // Delete this status flag
-
-		break;
-
-	case 0x02:                            // Button 2 have been pressed to change the LED intensity
-		while (0) //(Button_2_get_level() == 0) // Remain in the loop as long as the button is held low
-		{
-//			leds.intensity += 0x04;     // Change intensity
-//			if (leds.intensity >= 0x30) // If intensity is set equal or higher than 0x30 it will be set back to 0x08
-//			{ // This is done because the LEDs consume a lot of power, spesially when using white light
-//				leds.intensity = 0x04;
-//			}
-//			update_LEDS(ON, Number_of_LEDS); // Write color to LEDs using new intensity
-//			_delay_ms(300);                  // Delay to allow user to observe the intensity
-		}
-//		store_color_to_EE();   // When button is released, the intensity is chosen and stored in eeprom
-//		blink_selected();      // Selected color is displayed on the LEDs
-		status_flags &= ~0x02; // Delete this status flag
-
-		break;
-
-	case 0x03:
-//		update_LEDS(ON, Number_of_LEDS); // Turn LEDs on
-		status_flags &= ~0x03;           // Delete this status flag
-		break;
-
-	case 0x04:
-//		update_LEDS(OFF, Number_of_LEDS); // Turn LEDs off
-		status_flags &= ~0x04;            // Delete this status flag
-		break;
-
-	default:
-//		update_LEDS(OFF, Number_of_LEDS); // Turn LEDs on
-		status_flags = 0;                 // Delete all status flags
-		break;
-	}
-}
 
 void SPI_Exchange8bit(uint8_t data)
 {
@@ -193,22 +165,25 @@ void SPI_Exchange8bit(uint8_t data)
 	SPI0.INTFLAGS = SPI0_INTFLAGS;
 
 	// Reset TCA counter register to ensure the first rising edge of PWM is predictable
-	TCA0.SINGLE.CNT = 0 /* Count: 0 */;
-
+	TCB0.CNT = 0 /* Count: 0 */;
+	cli(); // Disable interrupts to avoid missaligned phase
 	// Start TCA
-	TCA0.SINGLE.CTRLA = TCA_SPLIT_CLKSEL_DIV1_gc /* System Clock */
-	                    | 1 << TCA_SPLIT_ENABLE_bp /* Module Enable: enabled */;
-
 	// Start SPI by writing a byte to SPI data register
 	SPI0.DATA = data;
+	TCB0.CTRLA = TCB_CLKSEL_CLKDIV1_gc /* System Clock */
+						| 1 << TCB_RUNSTDBY_bp
+	                    | 1 << TCB_ENABLE_bp /* Module Enable: enabled */;
 
+
+	sei(); // Reenable interrupts
 	// Wait for transfer to complete
 	while ((SPI0.INTFLAGS & SPI_RXCIF_bm) == 0) {
 	}
 
 	// Stop TCA
-	TCA0.SINGLE.CTRLA = TCA_SPLIT_CLKSEL_DIV1_gc /* System Clock */
-	                    | 0 << TCA_SPLIT_ENABLE_bp /* Module Enable: disabled */;
+	TCB0.CTRLA = TCB_CLKSEL_CLKDIV1_gc /* System Clock */
+						| 1 << TCB_RUNSTDBY_bp
+	                    | 0 << TCB_ENABLE_bp /* Module Enable: disabled */;
 }
 
 void write_to_leds(uint8_t x_leds)

@@ -29,7 +29,7 @@ def getPrice(action):
 
   payload['key']=h.hexdigest()
 
-  url = 'https://xxx:yyy/timpris/query.php'
+  url = 'http://extra.hoj.nu/timpris/query.php'
 
   response = requests.get(url, params=payload)
 
@@ -72,7 +72,7 @@ def GetColour(v, vmin, vmax):
    return c
 
 
-def sendPriceArray(priceRatio):
+def sendPriceArray(priceRatio, pwm1, pwm2, do1, do2):
 
   ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)  # open serial port
   print(ser.name)         # check which port was really used
@@ -92,6 +92,10 @@ def sendPriceArray(priceRatio):
   data = [item for sublist in arr for item in sublist]
 
   data.insert(0, 0x02)
+  data.append(pwm1)
+  data.append(pwm2)
+  data.append(do1)
+  data.append(do2)
   data.append(0x03)
 
   print(data)
@@ -99,7 +103,7 @@ def sendPriceArray(priceRatio):
   resp=s = ser.read(80)
   print(resp)
   ser.close()             # close port
-
+pwm=38
 while(1):
   now=time.time()
 
@@ -148,8 +152,10 @@ while(1):
     priceRatio=[]
     for itm in priceData[:8]:
       priceRatio.append(float(itm['price'])/avg)
- 
-    print(priceRatio)
-    sendPriceArray(priceRatio)
 
+    print(priceRatio)
+    sendPriceArray(priceRatio,pwm,255-pwm,0,0)
+  pwm+=1
+  if pwm>174:
+    pwm=31
   time.sleep(2*5)

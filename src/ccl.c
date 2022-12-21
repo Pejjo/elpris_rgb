@@ -46,7 +46,7 @@ int8_t DIGITAL_GLUE_LOGIC_0_init()
 
 	CCL.LUT1CTRLC = CCL_INSEL2_SPI0_gc /* SPI0 SCK source (was TCA0 WO2 input source) */;
 
-	CCL.LUT1CTRLB = CCL_INSEL0_TCA0_gc /* TCA0 WO0 input source (was SPI0 SCK source) */
+	CCL.LUT1CTRLB = CCL_INSEL0_TCB0_gc /* TCA0 WO0 input source (was SPI0 SCK source) */
 	                | CCL_INSEL1_SPI0_gc /* SPI0 MOSI input source */;
 
 	CCL.LUT1CTRLA =   CCL_CLKSRC_CLKPER_gc       /* Clock Source Selection: disabled */

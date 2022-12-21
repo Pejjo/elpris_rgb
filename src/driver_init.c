@@ -36,21 +36,64 @@
 #include "driver_init.h"
 #include <system.h>
 
+/**
+ * \brief Initialize tca interface
+ *
+ * \return Initialization status.
+ */
+int8_t TIMER_B_init()
+{
+
+	// TCA0.SINGLE.CMP1 = 0x0; /* Compare Register 1: 0x0 */
+
+	// TCA0.SINGLE.CMP2 = 0x4; /* Compare Register 2: 0x4 */
+
+	// TCA0.SINGLE.CNT = 0x0; /* Count: 0x0 */
+
+	TCB0.CTRLB = (1 << TCB_CCMPEN_bp )        /* Compare 0 Enable: enabled */
+	                    | TCB_CNTMODE_PWM8_gc; /*  */
+
+	// TCA0.SINGLE.DBGCTRL = 0 << TCA_SINGLE_DBGRUN_bp; /* Debug Run: disabled */
+
+	// TCA0.SINGLE.EVCTRL = 0 << TCA_SINGLE_CNTEI_bp /* Count on Event Input: disabled */
+	//		 | TCA_SINGLE_EVACT_POSEDGE_gc /* Count on positive edge event */;
+
+	// TCA0.SINGLE.INTCTRL = 0 << TCA_SINGLE_CMP0_bp /* Compare 0 Interrupt: disabled */
+	//		 | 0 << TCA_SINGLE_CMP1_bp /* Compare 1 Interrupt: disabled */
+	//		 | 0 << TCA_SINGLE_CMP2_bp /* Compare 2 Interrupt: disabled */
+	//		 | 0 << TCA_SINGLE_OVF_bp; /* Overflow Interrupt: disabled */
+	TCB0.CNT=0;
+
+	/* See Errata. CCMP must be written as 16-bit register! */
+	TCB0.CCMP = 0x0407; /* Compare Register 0: 0x04 */ 
+//	TCB0.CCMPL = 0x07; /* Period: 0x7 */
+
+	// TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV1_gc /* System Clock */
+	//		 | 0 << TCA_SINGLE_ENABLE_bp /* Module Enable: disabled */;
+
+	return 0;
+}
+
 void TIMER_0_initialization(void)
 {
 
 	// Set pin direction to output
+	PORTMUX.TCBROUTEA = PORTMUX_TCB0_ALT1_gc;
 
-	PA0_set_level(
-	    // <y> Initial level
-	    // <id> pad_initial_level
-	    // <false"> Low
-	    // <true"> High
-	    false);
+	PA0_set_level(false);
+	PA1_set_level(false);
+	PF4_set_level(false);
+
 
 	PA0_set_dir(PORT_DIR_OUT);
+	PA1_set_dir(PORT_DIR_OUT);
+	PF4_set_dir(PORT_DIR_OUT);
+
 
 	TIMER_0_init();
+
+	TIMER_B_init();
+
 }
 
 /* configure the pins and initialize the registers */
@@ -114,14 +157,13 @@ void system_init()
 
 	// Set pin direction to output
 
-	PC3_set_level(
+//	PC3_set_level(
 	    // <y> Initial level
 	    // <id> pad_initial_level
 	    // <false"> Low
 	    // <true"> High
-	    true);
-
-	PC3_set_dir(PORT_DIR_OUT);
+//	    true);
+//	PC3_set_dir(PORT_DIR_OUT);
 
 	Led_0_set_level(
 	    // <y> Initial level
@@ -144,6 +186,9 @@ void system_init()
 	    // <PORT_PULL_UP"> Pull-up
 	    PORT_PULL_UP);
 
+	VPORTC.DIR=0xFF;
+	VPORTD.DIR=0xFF;
+
 	CLKCTRL_init();
 
 	TIMER_0_initialization();
@@ -157,4 +202,5 @@ void system_init()
 	SLPCTRL_init();
 
 	BOD_init();
+
 }
